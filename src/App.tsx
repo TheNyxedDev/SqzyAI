@@ -1,13 +1,13 @@
 import { useState, useRef } from 'react';
-import { 
-  Plus, 
-  RotateCw, 
-  Settings, 
-  History, 
-  ChevronRight, 
-  ChevronDown, 
-  X, 
-  Send, 
+import {
+  Plus,
+  RotateCw,
+  Settings,
+  History,
+  ChevronRight,
+  ChevronDown,
+  X,
+  Send,
   Trash2,
   ThumbsUp,
   ThumbsDown,
@@ -46,17 +46,17 @@ const SERVICE_ICONS: Record<string, number> = {
   Teams: 23,
   SoundService: 31,
   TextChatService: 33,
-  
+
   // Organization
   Folder: 77,
   Model: 78,
   Configuration: 52,
-  
+
   // Scripts
   Script: 6,
   LocalScript: 18,
   ModuleScript: 76,
-  
+
   // Physics & Parts
   Part: 1,
   MeshPart: 8,
@@ -70,7 +70,7 @@ const SERVICE_ICONS: Record<string, number> = {
   VehicleSeat: 35,
   Attachment: 38,
   Bone: 39,
-  
+
   // Values
   StringValue: 4,
   IntValue: 4,
@@ -81,7 +81,7 @@ const SERVICE_ICONS: Record<string, number> = {
   CFrameValue: 4,
   Color3Value: 4,
   BrickColorValue: 4,
-  
+
   // UI
   ScreenGui: 46,
   SurfaceGui: 46,
@@ -96,13 +96,13 @@ const SERVICE_ICONS: Record<string, number> = {
   ViewportFrame: 54,
   VideoFrame: 55,
   CanvasGroup: 56,
-  
+
   // Networking
   RemoteEvent: 75,
   RemoteFunction: 74,
   BindableEvent: 67,
   BindableFunction: 66,
-  
+
   // Lighting & Effects
   PointLight: 14,
   SpotLight: 15,
@@ -113,11 +113,11 @@ const SERVICE_ICONS: Record<string, number> = {
   Fire: 62,
   Smoke: 61,
   Sparkles: 60,
-  
+
   // Audio
   Sound: 31,
   SoundGroup: 32,
-  
+
   // Character
   Humanoid: 9,
   Animator: 10,
@@ -168,8 +168,8 @@ const OBJECT_CATEGORIES = [
 ];
 
 const ROBLOX_SERVICES = [
-  'Workspace', 'Players', 'Lighting', 'MaterialService', 'NetworkClient', 
-  'ReplicatedFirst', 'ReplicatedStorage', 'ServerScriptService', 'ServerStorage', 
+  'Workspace', 'Players', 'Lighting', 'MaterialService', 'NetworkClient',
+  'ReplicatedFirst', 'ReplicatedStorage', 'ServerScriptService', 'ServerStorage',
   'StarterGui', 'StarterPack', 'StarterPlayer', 'Teams', 'SoundService', 'TextChatService'
 ];
 
@@ -178,7 +178,7 @@ const ROBLOX_SERVICES = [
 const VanillaIcon = ({ id, className }: { id: number | string, className?: string }) => {
   const iconId = typeof id === 'string' ? (SERVICE_ICONS[id] ?? 0) : id;
   return (
-    <div 
+    <div
       className={cn("w-4 h-4 flex-shrink-0", className)}
       style={{
         backgroundImage: `url(${VANILLA_SPRITE})`,
@@ -218,29 +218,42 @@ loader.config({
   },
 });
 
+const AI_MODELS = [
+  { id: 'gpt-5.4-nano', name: 'openai/gpt-5.4-nano', provider: 'puter' },
+  { id: 'mercury-2', name: 'inception/mercury-2', provider: 'puter' },
+  { id: 'claude-sonnet-4-6', name: 'anthropic/claude-sonnet-4-6', provider: 'puter' },
+  { id: 'claude-opus-4-6', name: 'anthropic/claude-opus-4-6', provider: 'puter' },
+  { id: 'gemini-3.1-pro-preview', name: 'google/gemini-3.1-pro-preview', provider: 'puter' },
+  { id: 'gemini-3.1-flash-lite-preview', name: 'google/gemini-3.1-flash-lite-preview', provider: 'puter' },
+  { id: 'glm-5.1', name: 'z-ai/glm-5.1', provider: 'puter' },
+  { id: 'nvidia/nemotron-3-super-120b-a12b:free', name: 'nvidia/nemotron-3-super-120b-a12b:free', provider: 'openrouter' },
+  { id: 'arcee-ai/trinity-large-preview:free', name: 'arcee-ai/trinity-large-preview:free', provider: 'openrouter' },
+  { id: 'minimax/minimax-m2.5:free', name: 'minimax/minimax-m2.5:free', provider: 'openrouter' },
+];
+
 // --- MAIN APP ---
 
 export default function App() {
-  const [provider, setProvider] = useState<'puter' | 'openrouter'>(() => (localStorage.getItem('sq_provider') as any) || 'puter');
-  const [model] = useState(() => localStorage.getItem('sq_model') || 'anthropic/claude-3.5-sonnet');
+  const [activeModelId, setActiveModelId] = useState(() => localStorage.getItem('sq_model') || 'gpt-5.4-nano');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('sq_api_key') || '');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('sq_api_key') || '');
   const [mode, setMode] = useState<'agentic' | 'planning' | 'debugging'>('agentic');
-  
+
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState<number | null>(null);
   const [isRojoConnected, setIsRojoConnected] = useState(false);
   const [rojoDirHandle, setRojoDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
-  
+
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRojoGuideOpen, setIsRojoGuideOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedParentNode, setSelectedParentNode] = useState<FileNode | null>(null);
-  
+
   const editorRef = useRef<any>(null);
 
   // --- FILE SYSTEM LOGIC ---
@@ -287,7 +300,7 @@ export default function App() {
             handle: entry,
             children: entry.kind === 'directory' ? [] : undefined
           };
-          
+
           if (entry.kind === 'directory') {
             await scan(entry as FileSystemDirectoryHandle, node);
           }
@@ -301,7 +314,7 @@ export default function App() {
           if (entry.name === 'server') targetService = 'ServerScriptService';
           else if (entry.name === 'client') targetService = 'StarterPlayer';
           else if (entry.name === 'shared') targetService = 'ReplicatedStorage';
-          
+
           if (targetService && services[targetService]) {
             await scan(entry as FileSystemDirectoryHandle, services[targetService]);
           }
@@ -314,7 +327,7 @@ export default function App() {
 
   const createObject = async (parent: FileNode, className: string, name: string) => {
     if (!parent.handle || parent.kind !== 'directory') return;
-    
+
     let fileName = `${name}.${className}`;
     let isFolder = true;
 
@@ -341,7 +354,7 @@ export default function App() {
         await writable.write('-- Generated by Squeeze IDE');
         await writable.close();
       }
-      
+
       if (rojoDirHandle) await refreshFileTree(rojoDirHandle);
       setIsCreateModalOpen(false);
     } catch (err) {
@@ -351,7 +364,7 @@ export default function App() {
 
   const openFile = async (node: FileNode) => {
     if (node.kind === 'directory') return;
-    
+
     const existingIndex = tabs.findIndex(t => t.path === node.path);
     if (existingIndex !== -1) {
       setActiveTabIndex(existingIndex);
@@ -393,13 +406,13 @@ export default function App() {
     if (activeTabIndex === null || !tabs[activeTabIndex]) return;
     const tab = tabs[activeTabIndex];
     const content = editorRef.current?.getValue();
-    
+
     if (tab.handle) {
       try {
         const writable = await (tab.handle as any).createWritable();
         await writable.write(content);
         await writable.close();
-        
+
         const newTabs = [...tabs];
         newTabs[activeTabIndex] = { ...tab, content, isModified: false };
         setTabs(newTabs);
@@ -496,7 +509,7 @@ export default function App() {
   const renderFileNode = (node: FileNode, depth: number = 0) => {
     const isExpanded = node.isOpen;
     const isService = !!node.service;
-    
+
     let iconId: number | string = 77;
     if (isService) iconId = node.service!;
     else if (node.kind === 'file') {
@@ -508,7 +521,7 @@ export default function App() {
 
     return (
       <div key={node.path}>
-        <div 
+        <div
           className={cn(
             "flex items-center gap-1.5 px-3 py-1 cursor-pointer hover:bg-white/5 transition-colors group relative",
             node.kind === 'file' && "pl-8",
@@ -558,70 +571,180 @@ export default function App() {
     );
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
-    
+
     const userMsg = { role: 'user', content: inputMessage };
     setMessages(prev => [...prev, userMsg]);
+    const currentInput = inputMessage;
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate AI thinking
-    setTimeout(() => {
-      setIsTyping(false);
-      
-      const response = { 
-        role: 'assistant', 
-        content: "I've generated a suggestion for your active script. Please review the changes below.",
-        suggestion: {
-          file: activeTabIndex !== null ? tabs[activeTabIndex].path : 'NewScript.luau',
-          content: activeTabIndex !== null 
-            ? editorRef.current?.getValue() + "\n\n-- AI SUGGESTION\nprint('Hello from Squeeze AI!')\n"
-            : "-- AI SUGGESTION\nprint('New file generated!')\n"
+    try {
+      const selectedModelObj = AI_MODELS.find(m => m.id === activeModelId) || AI_MODELS[0];
+      let aiResponseText = "";
+
+      const activeFile = activeTabIndex !== null ? tabs[activeTabIndex] : null;
+      let systemPrompt = `You are an expert Roblox Lua/Luau autonomous coding agent. 
+The chat interface is strictly for instructions, reasoning, terminology, and normal conversation. DO NOT output code blocks like \`\`\`lua in the chat.
+Coding ALWAYS happens in the editor natively. To write, modify, or create a script, you MUST use the following exact XML format:
+<file path="Full/Path/To/Script.luau">
+-- Your complete code here
+</file>
+
+You can create documents wherever and whenever you want. Always provide the full absolute path such as "ServerScriptService/Main.server.luau".
+If the user is asking you to modify an existing file, output the ENTIRE updated file content within the <file> tags.`;
+
+      if (activeFile && editorRef.current) {
+        systemPrompt += `\n\nThe user is currently focusing on this file path: '${activeFile.path}'.\nHere is its current content:\n<current_file>\n${editorRef.current.getValue()}\n</current_file>\n`;
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Thinking...' }]);
+
+      let currentTabs = [...tabs];
+      let currentActiveIndex = activeTabIndex;
+
+      const processResponseText = (fullResponse: string) => {
+        const fileTagRegex = /<file\s+path=["']([^"']+)["']\s*>([\s\S]*?)(?:<\/file>|$)/g;
+        let match;
+        let chatText = fullResponse;
+        let files: { path: string, content: string }[] = [];
+
+        while ((match = fileTagRegex.exec(fullResponse)) !== null) {
+          files.push({ path: match[1], content: match[2].trimStart() });
+        }
+
+        chatText = chatText.replace(/<file\s+path=["']([^"']+)["']\s*>[\s\S]*?(?:<\/file>|$)/g, '').replace(/```xml\s*```/g, '').replace(/```\s*```/g, '').trim();
+
+        setMessages(prev => {
+          const newM = [...prev];
+          if (newM.length > 0 && newM[newM.length - 1].role === 'assistant') {
+            newM[newM.length - 1] = { ...newM[newM.length - 1], content: chatText || (files.length > 0 ? "Coding..." : "Thinking...") };
+          }
+          return newM;
+        });
+
+        if (files.length > 0) {
+          const latestFile = files[files.length - 1];
+
+          let tabIndex = currentTabs.findIndex(t => t.path === latestFile.path);
+          if (tabIndex === -1) {
+            currentTabs.push({
+              name: latestFile.path.split('/').pop() || 'NewScript.luau',
+              path: latestFile.path,
+              content: latestFile.content,
+              isModified: true
+            });
+            tabIndex = currentTabs.length - 1;
+          } else {
+            currentTabs[tabIndex] = { ...currentTabs[tabIndex], content: latestFile.content, isModified: true };
+          }
+
+          if (currentActiveIndex !== tabIndex) {
+            currentActiveIndex = tabIndex;
+            setActiveTabIndex(tabIndex);
+          }
+
+          if (editorRef.current && currentActiveIndex === tabIndex) {
+            const model = editorRef.current.getModel();
+            if (model && model.getValue() !== latestFile.content) {
+              editorRef.current.setValue(latestFile.content);
+            }
+          }
         }
       };
-      
-      setMessages(prev => [...prev, response]);
-    }, 1500);
-  };
 
-  const acceptSuggestion = async (suggestion: { file: string, content: string }, index: number) => {
-    // If it's the active tab, update the editor directly or update the file
-    if (activeTabIndex !== null && tabs[activeTabIndex].path === suggestion.file) {
-      editorRef.current?.setValue(suggestion.content);
-      await saveCurrentFile();
-    }
-    
-    // Update message status
-    const newMessages = [...messages];
-    newMessages[index] = { ...newMessages[index], status: 'accepted' };
-    setMessages(newMessages);
-  };
+      let fullResponse = "";
 
-  const denySuggestion = (index: number) => {
-    const newMessages = [...messages];
-    newMessages[index] = { ...newMessages[index], status: 'denied' };
-    setMessages(newMessages);
-  };
+      if (selectedModelObj.provider === 'puter') {
+        const response = await (window as any).puter.ai.chat(
+          `${systemPrompt}\n\nUser Message: ${currentInput}`,
+          { model: selectedModelObj.id, stream: true }
+        );
 
-  const acceptAll = async () => {
-    const updatedMessages = [...messages];
-    for (let i = 0; i < updatedMessages.length; i++) {
-      const m = updatedMessages[i];
-      if (m.suggestion && m.status !== 'accepted' && m.status !== 'denied') {
-        if (activeTabIndex !== null && tabs[activeTabIndex].path === m.suggestion.file) {
-          editorRef.current?.setValue(m.suggestion.content);
-          await saveCurrentFile();
+        if (response && typeof response[Symbol.asyncIterator] === 'function') {
+          for await (const part of response) {
+            fullResponse += part?.text || "";
+            processResponseText(fullResponse);
+          }
+        } else {
+          fullResponse = typeof response === 'string' ? response : (response?.message?.content || response?.text || JSON.stringify(response));
+          processResponseText(fullResponse);
         }
-        updatedMessages[i] = { ...m, status: 'accepted' };
+      } else {
+        const defaultKey = "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";
+        const keyToUse = apiKey || defaultKey;
+
+        const messagesToSend = [
+          { role: "system", content: systemPrompt },
+          ...messages.map(m => ({ role: m.role, content: m.content })).filter(m => m.role !== 'system'),
+          { role: "user", content: currentInput }
+        ];
+
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${keyToUse}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: selectedModelObj.id,
+            messages: messagesToSend,
+            stream: true
+          })
+        });
+
+        const reader = res.body?.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        if (reader) {
+          let done = false;
+          while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            done = doneReading;
+            if (value) {
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || "";
+
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('data: ') && trimmed !== 'data: [DONE]') {
+                  try {
+                    const data = JSON.parse(trimmed.slice(6));
+                    if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
+                      fullResponse += data.choices[0].delta.content;
+                      processResponseText(fullResponse);
+                    }
+                  } catch (e) { }
+                }
+              }
+            }
+          }
+        }
       }
+
+      setTabs([...currentTabs]);
+      setIsTyping(false);
+
+      setMessages(prev => {
+        const newM = [...prev];
+        const lastMsg = newM[newM.length - 1];
+        if (lastMsg && lastMsg.role === 'assistant' && (lastMsg.content === 'Coding...' || lastMsg.content === 'Thinking...')) {
+          newM[newM.length - 1] = { ...lastMsg, content: `I have updated the files in your editor.` };
+        }
+        return newM;
+      });
+
+    } catch (err: any) {
+      setIsTyping(false);
+      console.error(err);
+      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
     }
-    setMessages(updatedMessages);
   };
 
-  const denyAll = () => {
-    setMessages(messages.map(m => m.suggestion ? { ...m, status: 'denied' } : m));
-  };
+
 
   return (
     <div className="flex flex-col h-screen bg-[#0e0e12] text-[#e4e4f0] font-sans selection:bg-lime-400/30 overflow-hidden">
@@ -631,12 +754,12 @@ export default function App() {
           <div className="w-6 h-6 bg-lime-400 rounded-md flex items-center justify-center text-black font-bold text-sm shadow-[0_0_10px_rgba(168,228,77,0.3)] group-hover:scale-105 transition-transform">🍋</div>
           <span className="font-extrabold text-[15px] tracking-tight text-lime-400">Squeeze</span>
         </div>
-        
+
         <div className="w-px h-5 bg-white/10 mx-1" />
-        
+
         <div className="flex items-center bg-[#1a1a24] border border-white/5 rounded-md px-2 py-1 gap-2">
-          <select 
-            value={mode} 
+          <select
+            value={mode}
             onChange={(e) => setMode(e.target.value as any)}
             className="bg-transparent border-none outline-none text-[11px] font-mono font-bold uppercase tracking-wider cursor-pointer text-white/80"
           >
@@ -648,14 +771,14 @@ export default function App() {
 
         <div className="flex-1 flex justify-center overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/5 rounded-full text-[11px] text-white/40 font-mono max-w-[400px]">
-            <span className="text-lime-400/50 truncate shrink-0">{model}</span>
+            <span className="text-lime-400/50 truncate shrink-0">{AI_MODELS.find(m => m.id === activeModelId)?.name || 'Select Model'}</span>
             <span className="text-white/10">|</span>
             <span className="truncate">{activeTabIndex !== null ? tabs[activeTabIndex]?.path : 'No file open'}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button 
+          <button
             className={cn(
               "flex items-center gap-2 px-3 py-1 rounded-md text-[11px] font-mono transition-all border shrink-0",
               isRojoConnected ? "bg-lime-400/10 border-lime-400/20 text-lime-400" : "bg-white/5 border-white/10 text-white/40 hover:text-white"
@@ -665,8 +788,8 @@ export default function App() {
             <div className={cn("w-1.5 h-1.5 rounded-full", isRojoConnected ? "bg-lime-400 animate-pulse shadow-[0_0_8px_rgba(168,228,77,0.8)]" : "bg-white/20")} />
             Rojo Sync
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setIsSettingsOpen(true)}
             className="p-1.5 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
           >
@@ -682,13 +805,13 @@ export default function App() {
           <div className="h-9 px-3 flex items-center justify-between border-b border-white/5 bg-[#1a1a24]/50">
             <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Explorer</span>
             <div className="flex items-center gap-1">
-              <button 
+              <button
                 onClick={() => rojoDirHandle && refreshFileTree(rojoDirHandle)}
                 className="p-1 rounded hover:bg-white/5 text-white/40 hover:text-white transition-colors"
               >
                 <RotateCw size={14} />
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setSelectedParentNode(fileTree[0]); // Default to first service (e.g. Workspace)
                   setIsCreateModalOpen(true);
@@ -699,7 +822,7 @@ export default function App() {
               </button>
             </div>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto py-2">
             {!isRojoConnected ? (
               <div className="px-6 py-8 text-center flex flex-col items-center gap-4">
@@ -709,13 +832,13 @@ export default function App() {
                 <p className="text-[11px] text-white/30 leading-relaxed">
                   Connect a Rojo project folder to sync your Roblox environment.
                 </p>
-                <button 
+                <button
                   onClick={connectFolder}
                   className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 text-[11px] font-bold py-2 rounded-lg transition-colors cursor-pointer"
                 >
                   Connect Folder
                 </button>
-                <button 
+                <button
                   onClick={() => setIsRojoGuideOpen(true)}
                   className="text-[10px] text-lime-400 hover:underline cursor-pointer"
                 >
@@ -733,7 +856,7 @@ export default function App() {
           {/* TABS */}
           <div className="h-9 bg-[#14141b] border-b border-white/10 flex overflow-x-auto no-scrollbar">
             {tabs.map((tab, i) => (
-              <div 
+              <div
                 key={tab.path}
                 onClick={() => setActiveTabIndex(i)}
                 className={cn(
@@ -744,7 +867,7 @@ export default function App() {
                 <VanillaIcon id={tab.name.includes('.server.') ? 'Script' : tab.name.includes('.client.') ? 'LocalScript' : 'ModuleScript'} />
                 <span className="text-[11px] truncate">{tab.name.replace(/\.(server|client)?\.luau?$/, '')}</span>
                 {tab.isModified && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />}
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); closeTab(i); }}
                   className={cn(
                     "p-0.5 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity ml-auto",
@@ -796,7 +919,7 @@ export default function App() {
             <div className="flex items-center gap-3">
               <span>Ln 1, Col 1</span>
               <span>UTF-8</span>
-              <button 
+              <button
                 onClick={saveCurrentFile}
                 className={cn(
                   "flex items-center gap-1 hover:text-white transition-colors cursor-pointer",
@@ -817,7 +940,7 @@ export default function App() {
               <Zap size={16} className="text-lime-400 fill-lime-400/20" />
               <span className="font-bold text-[13px]">AI Assistant</span>
             </div>
-            <button 
+            <button
               onClick={() => setMessages([])}
               className="p-1.5 rounded-md hover:bg-white/5 text-white/20 hover:text-white transition-colors"
             >
@@ -826,35 +949,18 @@ export default function App() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 no-scrollbar">
-            {messages.some(m => m.suggestion && !m.status) && (
-              <div className="flex items-center justify-center gap-2 pb-2 mb-2 border-b border-white/5">
-                <button 
-                  onClick={acceptAll}
-                  className="flex-1 py-1.5 bg-lime-400/10 hover:bg-lime-400/20 text-lime-400 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all border border-lime-400/20"
-                >
-                  Accept All
-                </button>
-                <button 
-                  onClick={denyAll}
-                  className="flex-1 py-1.5 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all border border-red-400/20"
-                >
-                  Deny All
-                </button>
-              </div>
-            )}
-            
             {messages.length === 0 && (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-4 opacity-40">
                 <div className="w-12 h-12 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
                   <Plus size={24} />
                 </div>
-                <p className="text-[12px]">Ask me to build a system, debug code, or plan architecture.</p>
+                <p className="text-[12px]">Ask me to build a system, debug code, or plan architecture. I'll code right in your editor.</p>
               </div>
             )}
-            
+
             {messages.map((m, i) => (
-              <motion.div 
-                key={i} 
+              <motion.div
+                key={i}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
@@ -863,60 +969,16 @@ export default function App() {
                 )}
               >
                 <div className={cn(
-                  "px-3 py-2 rounded-2xl text-[12px] leading-relaxed shadow-sm",
-                  m.role === 'user' 
-                    ? "bg-lime-400 text-black rounded-tr-none font-medium" 
+                  "px-3 py-2 rounded-2xl text-[12px] leading-relaxed shadow-sm whitespace-pre-wrap",
+                  m.role === 'user'
+                    ? "bg-lime-400 text-black rounded-tr-none font-medium"
                     : "bg-white/5 border border-white/10 text-white/80 rounded-tl-none"
                 )}>
                   {m.content}
                 </div>
-                
-                {m.suggestion && (
-                  <div className={cn(
-                    "w-full bg-[#0b0b10] border rounded-xl overflow-hidden transition-all",
-                    m.status === 'accepted' ? "border-lime-400/50" : m.status === 'denied' ? "border-red-400/50" : "border-white/10"
-                  )}>
-                    <div className="px-3 py-2 bg-white/5 border-b border-white/5 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Code2 size={12} className="text-white/40" />
-                        <span className="text-[10px] font-mono text-white/40">{m.suggestion.file}</span>
-                      </div>
-                      {m.status && (
-                        <span className={cn(
-                          "text-[9px] font-bold uppercase px-1.5 py-0.5 rounded",
-                          m.status === 'accepted' ? "bg-lime-400/20 text-lime-400" : "bg-red-400/20 text-red-400"
-                        )}>
-                          {m.status}
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <pre className="text-[10px] font-mono text-white/60 leading-relaxed overflow-hidden whitespace-pre-wrap max-h-[150px]">
-                        {m.suggestion.content.length > 300 ? m.suggestion.content.substring(0, 300) + '...' : m.suggestion.content}
-                      </pre>
-                    </div>
-                    {!m.status && (
-                      <div className="flex border-t border-white/5">
-                        <button 
-                          onClick={() => acceptSuggestion(m.suggestion, i)}
-                          className="flex-1 py-2 hover:bg-lime-400/10 text-lime-400 text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-1.5"
-                        >
-                          Accept
-                        </button>
-                        <div className="w-px bg-white/5" />
-                        <button 
-                          onClick={() => denySuggestion(i)}
-                          className="flex-1 py-2 hover:bg-red-400/10 text-red-400 text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-1.5"
-                        >
-                          Deny
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
 
-                {m.role === 'assistant' && !m.suggestion && (
-                  <div className="flex items-center gap-2 opacity-0 hover:opacity-100 transition-opacity ml-1">
+                {m.role === 'assistant' && (
+                  <div className="flex items-center gap-2 opacity-0 hover:opacity-100 transition-opacity ml-1 mt-0.5">
                     <button className="text-white/30 hover:text-white transition-colors cursor-pointer"><ThumbsUp size={12} /></button>
                     <button className="text-white/30 hover:text-white transition-colors cursor-pointer"><ThumbsDown size={12} /></button>
                     <button className="text-white/30 hover:text-white transition-colors cursor-pointer"><Copy size={12} /></button>
@@ -924,7 +986,7 @@ export default function App() {
                 )}
               </motion.div>
             ))}
-            
+
             {isTyping && (
               <div className="flex gap-1 p-2 bg-white/5 rounded-full w-fit animate-pulse ml-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-lime-400" />
@@ -935,19 +997,31 @@ export default function App() {
           </div>
 
           <div className="p-4 border-t border-white/10 flex flex-col gap-3 bg-[#0e0e12]">
-            <div className="flex items-center gap-2">
-              <select 
-                value={provider}
-                onChange={(e) => setProvider(e.target.value as any)}
-                className="bg-white/5 border border-white/10 rounded-md px-2 py-1 text-[10px] text-white/60 outline-none"
+            <div className="flex items-center gap-2 mb-1">
+              <select
+                value={activeModelId}
+                onChange={(e) => {
+                  setActiveModelId(e.target.value);
+                  localStorage.setItem('sq_model', e.target.value);
+                }}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-lime-400 outline-none cursor-pointer hover:bg-white/10 focus:border-lime-400/50 focus:bg-[#1a1a24] transition-all"
+                title="Select AI Model"
               >
-                <option value="puter">Puter.js</option>
-                <option value="openrouter">OpenRouter</option>
+                <optgroup label="Puter.js Models (Free)">
+                  {AI_MODELS.filter(m => m.provider === 'puter').map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="OpenRouter Models">
+                  {AI_MODELS.filter(m => m.provider === 'openrouter').map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
-            
+
             <div className="relative group">
-              <textarea 
+              <textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={(e) => {
@@ -960,7 +1034,7 @@ export default function App() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-10 text-[12px] text-white outline-none focus:border-lime-400/50 focus:bg-white/[0.08] transition-all resize-none min-h-[44px] max-h-[120px]"
                 rows={1}
               />
-              <button 
+              <button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isTyping}
                 className="absolute right-2 bottom-2 p-1.5 bg-lime-400 rounded-lg text-black hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(168,228,77,0.4)] disabled:opacity-50 disabled:scale-100 cursor-pointer"
@@ -976,14 +1050,14 @@ export default function App() {
       <AnimatePresence>
         {isSettingsOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSettingsOpen(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -1001,8 +1075,8 @@ export default function App() {
               <div className="p-6 flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-white/40">OpenRouter API Key</label>
-                  <input 
-                    type="password" 
+                  <input
+                    type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="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"
@@ -1012,7 +1086,7 @@ export default function App() {
                 </div>
               </div>
               <div className="p-6 bg-[#0e0e12] flex gap-3">
-                <button 
+                <button
                   onClick={() => setIsSettingsOpen(false)}
                   className="flex-1 py-3 rounded-xl bg-lime-400 text-black font-bold hover:bg-lime-300 transition-colors cursor-pointer"
                 >
@@ -1025,14 +1099,14 @@ export default function App() {
 
         {isRojoGuideOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsRojoGuideOpen(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -1060,7 +1134,7 @@ export default function App() {
                     </code>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-[32px_1fr] gap-4">
                   <div className="w-8 h-8 rounded-lg bg-lime-400 text-black flex items-center justify-center font-bold">2</div>
                   <div>
@@ -1083,7 +1157,7 @@ export default function App() {
                     </code>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
                   <h4 className="text-[11px] font-bold uppercase tracking-widest text-white/40 mb-2">How Squeeze works</h4>
                   <p className="text-[12px] text-white/60 leading-relaxed">
@@ -1092,7 +1166,7 @@ export default function App() {
                 </div>
               </div>
               <div className="p-6 bg-[#0e0e12] flex gap-3">
-                <button 
+                <button
                   onClick={() => { setIsRojoGuideOpen(false); connectFolder(); }}
                   className="flex-1 py-3 rounded-xl bg-lime-400 text-black font-bold hover:bg-lime-300 transition-colors shadow-[0_0_20px_rgba(168,228,77,0.2)] cursor-pointer"
                 >
@@ -1104,14 +1178,14 @@ export default function App() {
         )}
         {isCreateModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsCreateModalOpen(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -1126,14 +1200,14 @@ export default function App() {
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="p-6 grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto no-scrollbar">
                 {OBJECT_CATEGORIES.map(category => (
                   <div key={category.name} className="flex flex-col gap-2">
                     <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/30 px-2">{category.name}</h3>
                     <div className="flex flex-col gap-1">
                       {category.items.map(item => (
-                        <button 
+                        <button
                           key={item}
                           onClick={() => {
                             const name = prompt(`Enter name for the new ${item}:`, item);
